@@ -877,10 +877,10 @@
                 vy: 0,
                 angle: 0,
                 radius: 20,
-                // Much slower acceleration with capped top speed
-                speed: 0.7,
-                maxVelocity: 2.2,
-                friction: 0.9,
+                // Faster and more responsive movement
+                speed: 1.4,
+                maxVelocity: 4.5,
+                friction: 0.85,
                 damageMultiplier: 1,
                 invulnerable: false,
                 invulnerableTime: 0
@@ -922,8 +922,9 @@
             
             // Mouse tracking
             canvas.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
             });
             
             // Keyboard controls
@@ -943,8 +944,9 @@
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                mouseX = touch.clientX;
-                mouseY = touch.clientY;
+                const rect = canvas.getBoundingClientRect();
+                mouseX = touch.clientX - rect.left;
+                mouseY = touch.clientY - rect.top;
                 lastTouchTime = Date.now();
                 startShooting();
 
@@ -958,16 +960,17 @@
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                mouseX = touch.clientX;
-                mouseY = touch.clientY;
+                const rect = canvas.getBoundingClientRect();
+                mouseX = touch.clientX - rect.left;
+                mouseY = touch.clientY - rect.top;
 
                 // Auto-aim assist for mobile - gently pull aim toward nearest enemy
                 if (window.innerWidth <= 900 && autoAim && game.enemies.length > 0) {
                     let nearestEnemy = null;
                     let nearestDist = Infinity;
                     game.enemies.forEach(enemy => {
-                        const dx = enemy.x - touch.clientX;
-                        const dy = enemy.y - touch.clientY;
+                        const dx = enemy.x - mouseX;
+                        const dy = enemy.y - mouseY;
                         const dist = Math.sqrt(dx * dx + dy * dy);
                         if (dist < nearestDist && dist < 150) { // Within 150px range
                             nearestDist = dist;
@@ -977,8 +980,8 @@
 
                     if (nearestEnemy) {
                         const assistStrength = 0.3; // How strongly to assist
-                        const dx = nearestEnemy.x - touch.clientX;
-                        const dy = nearestEnemy.y - touch.clientY;
+                        const dx = nearestEnemy.x - mouseX;
+                        const dy = nearestEnemy.y - mouseY;
                         mouseX += dx * assistStrength;
                         mouseY += dy * assistStrength;
                     }
@@ -1746,10 +1749,10 @@
             if (keys['s'] || keys['arrowdown']) game.player.vy += game.player.speed;
             if (keys['a'] || keys['arrowleft']) game.player.vx -= game.player.speed;
             if (keys['d'] || keys['arrowright']) game.player.vx += game.player.speed;
-            // Joystick movement
+            // Joystick movement - improved precision and responsiveness
             if (joystick.active) {
-                game.player.vx += joystick.dx * game.player.speed * 0.12;
-                game.player.vy += joystick.dy * game.player.speed * 0.12;
+                game.player.vx += joystick.dx * game.player.speed * 0.25;
+                game.player.vy += joystick.dy * game.player.speed * 0.25;
             }
             
             // Apply friction
@@ -2495,7 +2498,7 @@
             try { if ('vibrate' in navigator && window.isSecureContext) navigator.vibrate(ms); } catch(_){}
         }
 
-        // Virtual joystick setup for mobile - Enhanced
+        // Virtual joystick setup for mobile - Enhanced with better precision
         (function setupJoystick(){
             const area = document.getElementById('joystick');
             const stick = document.getElementById('joystickStick');
@@ -2516,6 +2519,17 @@
                 const dy = clientY - c.y;
                 const dist = Math.hypot(dx, dy);
                 const max = area.offsetWidth / 3; // Dynamic max based on joystick size
+
+                // Add dead zone to prevent drift
+                const deadZone = 8;
+                if (dist < deadZone) {
+                    joystick.dx = 0;
+                    joystick.dy = 0;
+                    updateStick(0, 0);
+                    area.classList.remove('active');
+                    return;
+                }
+
                 const scale = dist > max ? max/dist : 1;
                 const ndx = dx * scale;
                 const ndy = dy * scale;
@@ -2524,11 +2538,7 @@
                 updateStick(ndx, ndy);
 
                 // Add visual feedback
-                if (dist > 5) {
-                    area.classList.add('active');
-                } else {
-                    area.classList.remove('active');
-                }
+                area.classList.add('active');
             };
 
             area.addEventListener('touchstart', (e)=>{
