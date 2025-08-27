@@ -879,6 +879,10 @@
                 const rect = canvas.getBoundingClientRect();
                 mouseX = e.clientX - rect.left;
                 mouseY = e.clientY - rect.top;
+                // Instant turn toward current aim point for precise feel
+                if (ctx && game && game.player) {
+                    game.player.angle = Math.atan2(mouseY - game.player.y, mouseX - game.player.x);
+                }
             });
             
             // Keyboard controls
@@ -902,6 +906,10 @@
                 mouseX = touch.clientX - rect.left;
                 mouseY = touch.clientY - rect.top;
                 lastTouchTime = Date.now();
+                // Instant turn on touch
+                if (ctx && game && game.player) {
+                    game.player.angle = Math.atan2(mouseY - game.player.y, mouseX - game.player.x);
+                }
                 startShooting();
 
                 // Haptic feedback for touch start
@@ -917,29 +925,12 @@
                 const rect = canvas.getBoundingClientRect();
                 mouseX = touch.clientX - rect.left;
                 mouseY = touch.clientY - rect.top;
-
-                // Auto-aim assist for mobile - gently pull aim toward nearest enemy
-                if (window.innerWidth <= 900 && autoAim && game.enemies.length > 0) {
-                    let nearestEnemy = null;
-                    let nearestDist = Infinity;
-                    game.enemies.forEach(enemy => {
-                        const dx = enemy.x - mouseX;
-                        const dy = enemy.y - mouseY;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < nearestDist && dist < 150) { // Within 150px range
-                            nearestDist = dist;
-                            nearestEnemy = enemy;
-                        }
-                    });
-
-                    if (nearestEnemy) {
-                        const assistStrength = 0.3; // How strongly to assist
-                        const dx = nearestEnemy.x - mouseX;
-                        const dy = nearestEnemy.y - mouseY;
-                        mouseX += dx * assistStrength;
-                        mouseY += dy * assistStrength;
-                    }
+                // Instant turn while dragging
+                if (ctx && game && game.player) {
+                    game.player.angle = Math.atan2(mouseY - game.player.y, mouseX - game.player.x);
                 }
+
+                // Precise aiming: do not alter touch position
             });
         }
 
@@ -1757,8 +1748,8 @@
             game.player.x = Math.max(game.player.radius, Math.min(canvas.width - game.player.radius, game.player.x));
             game.player.y = Math.max(game.player.radius, Math.min(canvas.height - game.player.radius, game.player.y));
 
-            // Update angle to face mouse - fix inverted Y coordinate for proper aiming
-            game.player.angle = Math.atan2(game.player.y - mouseY, mouseX - game.player.x);
+            // Update angle to face current aim point (mouse/touch)
+            game.player.angle = Math.atan2(mouseY - game.player.y, mouseX - game.player.x);
         }
 
         function shoot(x, y) {
@@ -1772,15 +1763,16 @@
             playSfx('shoot', onBeatWindow ? 1.1 : 1.0);
             
             if (game.powerupActive === 'multi') {
-                // Multi-shot
+                // Multi-shot - use player's current facing angle for consistency
+                const baseAngle = game.player.angle;
                 for (let i = -2; i <= 2; i++) {
-                    const angle = Math.atan2(y - game.player.y, x - game.player.x);
-                    const spreadAngle = angle + (i * 0.15);
+                    const spreadAngle = baseAngle + (i * 0.15);
                     const targetX = game.player.x + Math.cos(spreadAngle) * 1000;
                     const targetY = game.player.y + Math.sin(spreadAngle) * 1000;
                     game.bullets.push(new Bullet(game.player.x, game.player.y, targetX, targetY));
                 }
             } else {
+                // Regular shot - compute using current aim point to exactly follow touch/mouse
                 game.bullets.push(new Bullet(game.player.x, game.player.y, x, y));
             }
         }
