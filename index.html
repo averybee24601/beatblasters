@@ -703,30 +703,7 @@
     <canvas class="audio-visualizer" id="audioVisualizer"></canvas>
 
     <div class="game-ui" id="gameUI" style="display: none;">
-        <div class="bb-controls" id="bbControls" aria-label="Beat & Blast">
-            <div class="bb-left">
-                <div class="bb-title" aria-label="Beat and Blast">
-                    <div class="t-line">BEAT</div>
-                    <div class="t-amp">&</div>
-                    <div class="t-line">BLAST</div>
-                </div>
-                <select id="bbSongSelect" class="cyber-select" title="Select song"></select>
-                <div class="bb-toggle">
-                    <label class="pill" id="bbShuffleToggle"><i class="fas fa-random"></i> Shuffle</label>
-                </div>
-            </div>
-            <div class="bb-mid">
-                <div class="bb-track-title" id="bbTrackTitle">—</div>
-                <div class="bb-controls-buttons">
-                    <button class="bb-btn" id="bbPrevBtn" title="Previous"><i class="fas fa-backward"></i></button>
-                    <button class="bb-btn" id="bbPlayPauseBtn" title="Play/Pause"><i class="fas fa-play"></i></button>
-                    <button class="bb-btn" id="bbNextBtn" title="Next"><i class="fas fa-forward"></i></button>
-                </div>
-                <div class="bb-volume">
-                    <i class="fas fa-volume-up"></i>
-                    <input id="bbVolume" type="range" min="0" max="100" value="80" />
-                </div>
-            </div>
+        <div class="bb-controls" id="bbControls" aria-label="Game Stats">
             <div class="bb-stats">
                 <span class="bb-stat"><span class="label">Score</span> <span id="bbScore">0</span></span>
                 <span class="bb-stat"><span class="label">Combo</span> <span id="bbCombo">x1</span></span>
@@ -756,22 +733,9 @@
         <div class="page-subtitle">Synthetic Beats Meets Synthetic Pixels</div>
         <div class="menu-cards">
             <div class="menu-card">
-                <h2>Choose Your Track</h2>
-                <div class="genre-select">
-                    <select id="genreDropdown" class="cyber-select" aria-label="Select genre">
-                        <option value="all">All Genres</option>
-                    </select>
-                </div>
-                <div class="track-selector" id="trackSelector">
-                    <div class="loading">Loading tracks...</div>
-                </div>
-            </div>
-
-            <div class="menu-card">
-                <h2>Launch</h2>
+                <h2>Ready to Play?</h2>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                    <button class="play-btn" id="playBtn" disabled>SELECT A TRACK</button>
-                    <button class="play-btn" id="playNoSongBtn" style="background: linear-gradient(135deg,#30343a 0%, #4a4f57 100%);">PLAY WITH NO MUSIC</button>
+                    <button class="play-btn" id="playBtn">PLAY NOW</button>
                 </div>
                 <div class="controls" style="margin-top:16px;">
                     <h3>How to Play:</h3>
@@ -798,19 +762,7 @@
     <div class="loading" id="loading">Loading...</div>
 
     <audio id="gameAudio"></audio>
-    <!-- In-game Audio Panel (toggleable) -->
-    <div id="hudControls" style="position:absolute; top:20px; right:20px; z-index:12; display:none; flex-direction:column; gap:8px; pointer-events:auto;">
-        <button id="settingsToggle" class="settings-toggle" style="font-weight:700; letter-spacing:0.5px;"><i class="fas fa-music"></i> Synthetic Tracks</button>
-        <div id="audioPanel" class="audio-panel">
-            <div style="font-weight:800; color:#00d4ff; text-shadow:0 0 10px rgba(0,212,255,0.6); margin-bottom:4px;">Synthetic Tracks</div>
-            <label for="inGameSong">Song</label>
-            <select id="inGameSong" class="cyber-select"></select>
-            <label for="musicVolume">Music Volume</label>
-            <input id="musicVolume" class="cyber-input" type="range" min="0" max="100" value="80" />
-            <label for="sfxVolume">Game Volume</label>
-            <input id="sfxVolume" class="cyber-input" type="range" min="0" max="100" value="80" />
-        </div>
-    </div>
+
 
     <script>
         // Game variables
@@ -878,7 +830,7 @@
                 angle: 0,
                 radius: 20,
                 // Faster and more responsive movement
-                speed: 1.4,
+                speed: 2.2,
                 maxVelocity: 4.5,
                 friction: 0.85,
                 damageMultiplier: 1,
@@ -1044,72 +996,14 @@
             ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
 
-        // Load tracks from the API
-        async function loadTracks() {
-            const selector = document.getElementById('trackSelector');
-            try {
-                const response = await fetch('/api/tracks?sort=popular');
-                const tracks = await response.json();
-                
-                if (tracks.length === 0) {
-                    selector.innerHTML = '<p style="color: #ff006e;">No tracks available. Please upload some tracks first!</p>';
-                    return;
-                }
-                
-                loadedTracks = tracks.slice(0, 50);
-                filteredTracks = [...loadedTracks];
-                buildGenreChips(loadedTracks);
-                displayTracks(filteredTracks);
-                populateInGameDropdown();
-                populateHudSongSelect();
-            } catch (error) {
-                console.error('Error loading tracks:', error);
-                selector.innerHTML = '<p style="color: #ff006e;">Failed to load tracks. Please check if the server is running.</p>';
-            }
+        // Initialize game (no tracks needed)
+        function loadTracks() {
+            // No tracks to load - game runs without music
         }
 
-        function buildGenreChips(tracks) {
-            const bar = document.getElementById('genreBar');
-            if (!bar) return;
-            const set = new Set();
-            tracks.forEach(t => (t.tags || []).forEach(tag => set.add(tag)));
-            const genres = ['all', ...Array.from(set).sort()];
-            bar.innerHTML = genres.map(g => `<button class="genre-chip${g==='all' ? ' active' : ''}" data-genre="${g}">${g.toUpperCase()}</button>`).join('');
-            bar.querySelectorAll('.genre-chip').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    bar.querySelectorAll('.genre-chip').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentGenre = btn.dataset.genre;
-                    if (currentGenre === 'all') {
-                        filteredTracks = [...loadedTracks];
-                    } else {
-                        filteredTracks = loadedTracks.filter(t => (t.tags||[]).includes(currentGenre));
-                    }
-                    displayTracks(filteredTracks);
-                    currentTrackIndex = -1;
-                    updateBeatBlastTitle();
-                });
-            });
-        }
 
-        function displayTracks(tracks) {
-            const selector = document.getElementById('trackSelector');
-            selector.innerHTML = tracks.map(track => `
-                <div class="track-item" data-track-id="${track.id}" data-url="${track.filename}">
-                    <div class="track-info">
-                        <div class="track-title">${escapeHtml(track.title)}</div>
-                        <div class="track-artist">by ${escapeHtml(track.artist)}</div>
-                    </div>
-                    <i class="fas fa-play"></i>
-                </div>
-            `).join('');
 
-            // Add click handlers
-            document.querySelectorAll('.track-item').forEach(item => {
-                item.addEventListener('click', () => selectTrack(item));
-            });
-            populateHudSongSelect();
-        }
+
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -1117,35 +1011,7 @@
             return div.innerHTML;
         }
 
-        function selectTrack(trackElement) {
-            // Remove previous selection
-            document.querySelectorAll('.track-item').forEach(item => {
-                item.classList.remove('selected');
-            });
 
-            // Select new track
-            trackElement.classList.add('selected');
-            game.selectedTrack = {
-                id: trackElement.dataset.trackId,
-                url: trackElement.dataset.url,
-                title: trackElement.querySelector('.track-title').textContent,
-                artist: trackElement.querySelector('.track-artist').textContent
-            };
-
-            // Enable play button
-            const playBtn = document.getElementById('playBtn');
-            playBtn.disabled = false;
-            playBtn.textContent = 'START GAME';
-
-            // Reflect selection in HUD dropdown
-            const inGameSong = document.getElementById('inGameSong');
-            if (inGameSong) inGameSong.value = String(game.selectedTrack.id);
-
-            // Prepare station index for Beat & Blast
-            currentTrackIndex = filteredTracks.findIndex(t => String(t.id) === String(game.selectedTrack.id));
-            updateBeatBlastTitle();
-            syncHudSongSelect();
-        }
 
         // Audio setup
         function setupAudio() {
@@ -1176,8 +1042,7 @@
                 const sEl = document.getElementById('sfxVolume');
                 if (mEl) mEl.value = String(Math.round(savedMusic * 100));
                 if (sEl) sEl.value = String(Math.round(savedSfx * 100));
-                const bbVolEl = document.getElementById('bbVolume');
-                if (bbVolEl) bbVolEl.value = String(Math.round(savedMusic * 100));
+
             }
 
              analyser = audioCtx.createAnalyser();
@@ -1208,33 +1073,11 @@
                  mediaSourceConnected = true;
              }
             audio.play();
-            updateBeatBlastTitle();
+
             setupVisualizer();
         }
 
-        function updateBeatBlastTitle(){
-            const el = document.getElementById('bbTrackTitle');
-            if (!el) return;
-            if (game.selectedTrack && game.selectedTrack.title){
-                const artist = (game.selectedTrack.artist || '').replace(/^by\s*/i,'');
-                el.textContent = `${game.selectedTrack.title} ${artist? '— '+artist: ''}`;
-            } else {
-                el.textContent = '—';
-            }
-        }
 
-        function populateHudSongSelect(){
-            const sel = document.getElementById('bbSongSelect');
-            if (!sel) return;
-            sel.innerHTML = filteredTracks.map(t => `<option value="${t.id}">${escapeHtml(t.title)} — ${escapeHtml(t.artist)}</option>`).join('');
-            syncHudSongSelect();
-        }
-
-        function syncHudSongSelect(){
-            const sel = document.getElementById('bbSongSelect');
-            if (!sel || !game.selectedTrack) return;
-            sel.value = String(game.selectedTrack.id);
-        }
 
         function setupVisualizer() {
             const vizCanvas = document.getElementById('audioVisualizer');
@@ -1274,21 +1117,7 @@
             
             drawVisualizer();
 
-            // Sync play/pause button state and auto-advance
-            const audio = document.getElementById('gameAudio');
-            const bbPlayPauseBtn = document.getElementById('bbPlayPauseBtn');
-            if (audio && bbPlayPauseBtn) {
-                const syncState = () => {
-                    bbPlayPauseBtn.innerHTML = audio.paused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
-                };
-                audio.onplaying = syncState;
-                audio.onpause = syncState;
-                audio.onended = () => {
-                    const next = document.getElementById('bbNextBtn');
-                    if (next) next.click();
-                };
-                setTimeout(syncState, 0);
-            }
+
         }
 
         const recentIntervals = [];
@@ -2209,10 +2038,7 @@
             setupAudio();
             lastFrameTime = 0;
             requestAnimationFrame(gameLoop);
-            // Ensure Beat & Blast reflects play state
-            const audio = document.getElementById('gameAudio');
-            const bbPlayPauseBtn = document.getElementById('bbPlayPauseBtn');
-            if (audio && !audio.paused && bbPlayPauseBtn) bbPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+
             
         }
 
@@ -2289,171 +2115,39 @@
             
             // Play button handler
             document.getElementById('playBtn').addEventListener('click', () => {
-                if (game.selectedTrack) {
-                    userInteracted = true;
-                    startGame();
-                }
-            });
-            // Play without music
-            document.getElementById('playNoSongBtn').addEventListener('click', () => {
                 userInteracted = true;
                 game.selectedTrack = { id: 'none', url: 'none', title: 'No Music', artist: '' };
                 startGame();
             });
 
-            // HUD controls
-            // Disable old dropdown panel to reduce distraction
-            const settingsToggle = document.getElementById('settingsToggle');
-            const audioPanel = document.getElementById('audioPanel');
-            const hudControls = document.getElementById('hudControls');
-            // Keep HUD controls in DOM (hidden) to avoid breaking listeners
-            const mEl = document.getElementById('musicVolume');
-            const sEl = document.getElementById('sfxVolume');
-            if (mEl) mEl.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value, 10);
-                localStorage.setItem('bb_music', String(value));
-                if (musicGain) musicGain.gain.value = value / 100;
-            });
-            if (sEl) sEl.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value, 10);
-                localStorage.setItem('bb_sfx', String(value));
-                if (sfxGain) sfxGain.gain.value = value / 100;
-            });
-            const inGameSong = document.getElementById('inGameSong');
-            if (inGameSong) inGameSong.addEventListener('change', async () => {
-                const id = inGameSong.value;
-                if (id === 'none') {
-                    game.selectedTrack = { id: 'none', url: 'none', title: 'No Music', artist: '' };
-                } else {
-                    const t = loadedTracks.find(tt => String(tt.id) === String(id));
-                    if (t) game.selectedTrack = { id: t.id, url: t.filename, title: t.title, artist: t.artist };
-                }
-                try {
-                    if (audioCtx && audioCtx.state === 'suspended') {
-                        await audioCtx.resume();
-                    }
-                } catch(_) {}
-                setupAudio();
-            });
 
-            // Beat & Blast controls
-            const bbPlayPauseBtn = document.getElementById('bbPlayPauseBtn');
-            const bbNextBtn = document.getElementById('bbNextBtn');
-            const bbPrevBtn = document.getElementById('bbPrevBtn');
-            const bbSongSelect = document.getElementById('bbSongSelect');
-            const bbShuffleToggle = document.getElementById('bbShuffleToggle');
-            const bbVolume = document.getElementById('bbVolume');
-            bbPlayPauseBtn.addEventListener('click', () => {
-                userInteracted = true;
-                const audio = document.getElementById('gameAudio');
-                const noTrackSelected = !game.selectedTrack || game.selectedTrack.url === 'none';
-                const hasSource = !!audio.getAttribute('src');
-                if (noTrackSelected || !hasSource) {
-                    let pickId = null;
-                    const sel = document.getElementById('bbSongSelect');
-                    if (sel && sel.value) pickId = sel.value;
-                    let t = null;
-                    if (pickId) t = filteredTracks.find(tt => String(tt.id) === String(pickId));
-                    if (!t && filteredTracks.length) t = filteredTracks[0];
-                    if (t) {
-                        game.selectedTrack = { id: t.id, url: t.filename, title: t.title, artist: t.artist };
-                        currentTrackIndex = filteredTracks.findIndex(tt => String(tt.id) === String(t.id));
-                        setupAudio();
-                    }
-                }
-                if (audio.paused) {
-                    audio.play().catch(()=>{});
-                    bbPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                } else {
-                    audio.pause();
-                    bbPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-                }
-            });
-            bbPrevBtn.addEventListener('click', async () => {
-                if (!filteredTracks.length) return;
-                if (currentTrackIndex < 0) currentTrackIndex = 0;
-                currentTrackIndex = (currentTrackIndex - 1 + filteredTracks.length) % filteredTracks.length;
-                const t = filteredTracks[currentTrackIndex];
-                game.selectedTrack = { id: t.id, url: t.filename, title: t.title, artist: t.artist };
-                setupAudio();
-                const audio = document.getElementById('gameAudio');
-                try { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); } catch(_) {}
-                if (audio) audio.play().catch(()=>{});
-                bbPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                syncHudSongSelect();
-            });
-            bbNextBtn.addEventListener('click', async () => {
-                if (!filteredTracks.length) return;
-                if (currentTrackIndex < 0) currentTrackIndex = 0;
-                if (shuffleOn) {
-                    currentTrackIndex = Math.floor(Math.random()*filteredTracks.length);
-                } else {
-                    currentTrackIndex = (currentTrackIndex + 1) % filteredTracks.length;
-                }
-                const t = filteredTracks[currentTrackIndex];
-                game.selectedTrack = { id: t.id, url: t.filename, title: t.title, artist: t.artist };
-                setupAudio();
-                const audio = document.getElementById('gameAudio');
-                try { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); } catch(_) {}
-                if (audio) audio.play().catch(()=>{});
-                bbPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                syncHudSongSelect();
-            });
+
+
+
+
+
+
+
+
+
+
+
+        });
+
+
+
             // Pause Game button
             const bbPauseGameBtn = document.getElementById('bbPauseGameBtn');
             bbPauseGameBtn.addEventListener('click', () => {
                 game.isPaused = !game.isPaused;
                 if (game.isPaused) {
                     cancelAnimationFrame(animationId);
-                    const audio = document.getElementById('gameAudio');
-                    if (audio) audio.pause();
                     bbPauseGameBtn.innerHTML = '<i class="fas fa-play"></i>';
                 } else {
-                    const audio = document.getElementById('gameAudio');
-                    if (audio) audio.play().catch(()=>{});
                     bbPauseGameBtn.innerHTML = '<i class="fas fa-pause"></i>';
                     requestAnimationFrame(gameLoop);
                 }
             });
-
-            // Song select change
-            bbSongSelect.addEventListener('change', async () => {
-                const id = bbSongSelect.value;
-                const t = filteredTracks.find(tt => String(tt.id) === String(id));
-                if (!t) return;
-                game.selectedTrack = { id: t.id, url: t.filename, title: t.title, artist: t.artist };
-                currentTrackIndex = filteredTracks.findIndex(tt => String(tt.id) === String(id));
-                setupAudio();
-                const audio = document.getElementById('gameAudio');
-                try { if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume(); } catch(_) {}
-                if (audio) audio.play().catch(()=>{});
-                bbPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            });
-
-            // Shuffle toggle
-            bbShuffleToggle.addEventListener('click', () => {
-                shuffleOn = !shuffleOn;
-                bbShuffleToggle.classList.toggle('active', shuffleOn);
-            });
-
-            // Volume control mirrors HUD
-            if (bbVolume) {
-                bbVolume.addEventListener('input', () => {
-                    const value = parseInt(bbVolume.value, 10);
-                    localStorage.setItem('bb_music', String(value));
-                    if (musicGain) musicGain.gain.value = value / 100;
-                });
-            }
-        });
-
-        function populateInGameDropdown() {
-            const inGameSong = document.getElementById('inGameSong');
-            if (!inGameSong) return;
-            inGameSong.innerHTML = [
-                '<option value="none">No Music (Metronome)</option>',
-                ...loadedTracks.map(t => `<option value="${t.id}">${escapeHtml(t.title)} — ${escapeHtml(t.artist)}</option>`)
-            ].join('');
-        }
 
         // Simple synth SFX
         function playSfx(type, pitch = 1) {
